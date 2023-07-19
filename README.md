@@ -57,7 +57,7 @@ docker ps
 Выполнить миграции:
 
 ```
-docker-compose exec backend python manage.py migrate
+docker-compose exec backend python3 manage.py migrate
 ```
 
 Загрузка ингредиентов в БД:
@@ -69,13 +69,13 @@ docker-compose exec backend python3 manage.py load_foodgram_data
 Создать пользователя:
 
 ```
-docker-compose exec backend python manage.py createsuperuser
+docker-compose exec backend python3 manage.py createsuperuser
 ```
 
 Собрать static файлы:
 
 ```
-docker-compose exec backend python manage.py collectstatic --no-input
+docker-compose exec backend python3 manage.py collectstatic --no-input
 ```
 
 ### Документация к API и примеры запросов доступны по ссылке в проекте:
