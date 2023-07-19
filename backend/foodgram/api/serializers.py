@@ -69,12 +69,12 @@ class RecipeSerializerRead(serializers.ModelSerializer):
 
     def get_is_favorited(self, obj):
         request = self.context.get('request', False)
-        return request and obj.favorite_set.filter(
+        return request and obj.favorites.filter(
             user=request.user).exists()
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request', False)
-        return request and obj.cart_set.filter(
+        return request and obj.carts.filter(
             user=request.user).exists()
 
 
@@ -147,11 +147,12 @@ class RecipeSerializerWrite(serializers.ModelSerializer):
         return ingredients
 
     def create_ingredients(self, ingredients, recipe):
+
         obj = [RecipeIngredient(recipe=recipe,
                                 ingredient_id=ingredient['id'],
                                 amount=ingredient['amount'])
                for ingredient in ingredients]
-
+        obj.sort(key=(lambda item: item.ingredient.name), reverse=True)
         RecipeIngredient.objects.bulk_create(obj)
 
     @transaction.atomic
