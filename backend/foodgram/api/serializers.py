@@ -5,6 +5,7 @@ from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
+from api.mixins import validate_favorite_cart
 from api.utils import get_author
 from recipes.models import (Cart, Favorite, Ingredient, Recipe,
                             RecipeIngredient, Subscription, Tag)
@@ -69,13 +70,15 @@ class RecipeSerializerRead(serializers.ModelSerializer):
 
     def get_is_favorited(self, obj):
         request = self.context.get('request', False)
-        return request and obj.favorite_set.filter(
-            user=request.user).exists()
+        return request and Favorite.objects.filter(
+            recipe=obj,
+            user=request.user.id).exists()
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request', False)
-        return request and obj.cart_set.filter(
-            user=request.user).exists()
+        return request and Cart.objects.filter(
+            recipe=obj,
+            user=request.user.id).exists()
 
 
 class RecipeSerializerWrite(serializers.ModelSerializer):
@@ -147,12 +150,11 @@ class RecipeSerializerWrite(serializers.ModelSerializer):
         return ingredients
 
     def create_ingredients(self, ingredients, recipe):
-        obj = [RecipeIngredient(recipe=recipe,
-                                ingredient_id=ingredient['id'],
-                                amount=ingredient['amount'])
-               for ingredient in ingredients]
-
-        RecipeIngredient.objects.bulk_create(obj)
+        for ingredient in ingredients:
+            RecipeIngredient.objects.bulk_create([
+                RecipeIngredient(recipe=recipe,
+                                 ingredient_id=ingredient['id'],
+                                 amount=ingredient['amount'])])
 
     @transaction.atomic
     def create(self, validated_data):
@@ -170,7 +172,8 @@ class RecipeSerializerWrite(serializers.ModelSerializer):
         ingredients = self.validate_ingredients()
         tags = validated_data.pop('tags')
         instance.tags.set(tags)
-        RecipeIngredient.objects.filter(recipe=instance, ).delete()
+        if RecipeIngredient.objects.filter(recipe=instance, ).exists():
+            RecipeIngredient.objects.filter(recipe=instance, ).delete()
         self.create_ingredients(ingredients, instance)
         return super().update(instance, validated_data)
 
@@ -192,13 +195,9 @@ class FavoriteSerializer(serializers.ModelSerializer):
             'request': self.context.get('request')}).data
 
     def validate(self, attrs):
-        if (self.context.get('request').method == 'POST'
-                and Favorite.objects.filter(
-                    recipe_id=self.context.get('pk'),
-                    user_id=self.context.get('request').user.id).exists()):
-            raise serializers.ValidationError(
-                {settings.DUPLICATE_FAVORITES.format(
-                    recipe=self.context.get('pk'))})
+        validate_favorite_cart(self, attrs, Favorite,
+                               settings.DUPLICATE_FAVORITES,
+                               settings.NOT_IN_FAVORITES)
         return attrs
 
 
@@ -207,13 +206,9 @@ class CartSerializer(FavoriteSerializer):
         model = Cart
 
     def validate(self, attrs):
-        if (self.context.get('request').method == 'POST'
-                and Cart.objects.filter(
-                    recipe_id=self.context.get('pk'),
-                    user_id=self.context.get('request').user.id).exists()):
-            raise serializers.ValidationError(
-                {settings.RECIPE_ALREADY_IN_CART.format(
-                    recipe=self.context.get('pk'))})
+        validate_favorite_cart(self, attrs, Cart,
+                               settings.RECIPE_ALREADY_IN_CART,
+                               settings.NOT_IN_CART)
         return attrs
 
 
@@ -261,6 +256,6 @@ class SubscriptionSerializer(CustomUserSerializer):
             'recipes_limit')
         user_recipes = obj.recipes.all()
         if recipes_limit:
-            user_recipes = user_recipes[:int(recipes_limit)]
+            user_recipes = obj.recipes.all()[:int(recipes_limit)]
         return ShortRecipe(user_recipes, many=True, context={
             'request': self.context.get('request')}).data
