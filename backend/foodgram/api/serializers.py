@@ -5,7 +5,7 @@ from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from api.utils import get_author
+from api.utils import get_author, val_ingr
 from recipes.models import (Cart, Favorite, Ingredient, Recipe,
                             RecipeIngredient, Subscription, Tag)
 from users.models import User
@@ -69,12 +69,12 @@ class RecipeSerializerRead(serializers.ModelSerializer):
 
     def get_is_favorited(self, obj):
         request = self.context.get('request', False)
-        return request and obj.favorite_set.filter(
+        return request and obj.favorites.filter(
             user=request.user).exists()
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request', False)
-        return request and obj.cart_set.filter(
+        return request and obj.carts.filter(
             user=request.user).exists()
 
 
@@ -115,43 +115,16 @@ class RecipeSerializerWrite(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {'ingredients': settings.NOT_LIST_INGREDIENT.format(
                     ingredients=ingredients)})
-        ingredient_ids = []
-        for ingredient in ingredients:
-            if 'amount' not in ingredient:
-                raise serializers.ValidationError(
-                    {'amount': settings.MUST_HAVE_FIELD_AMOUNT.format(
-                        ingredient=ingredient)})
-            if 'id' not in ingredient:
-                raise serializers.ValidationError(
-                    {'id': settings.MUST_HAVE_FIELD_ID.format(
-                        ingredient=ingredient)})
-            try:
-                int(ingredient['amount'])
-                if not int(ingredient['amount']) > 0:
-                    raise serializers.ValidationError(
-                        {'amount': settings.NOT_POSITIVE_INTEGER.format(
-                            ingredient=ingredient)})
-            except ValueError:
-                raise serializers.ValidationError(
-                    {'amount': settings.NOT_POSITIVE_INTEGER.format(
-                        ingredient=ingredient)})
-            if not Ingredient.objects.filter(id=ingredient['id']).exists():
-                raise serializers.ValidationError(
-                    {'ingredients': settings.NO_INGREDIENT.format(
-                        ingredient=ingredient)})
-            ingredient_ids.append(ingredient['id'])
-            if len(ingredient_ids) != len(set(ingredient_ids)):
-                raise serializers.ValidationError(
-                    {'ingredients': settings.DUPLICATE_INGREDIENTS.format(
-                        ingredient=ingredient)})
-        return ingredients
+        val_ingredients = val_ingr(ingredients)
+        return val_ingredients
 
     def create_ingredients(self, ingredients, recipe):
+
         obj = [RecipeIngredient(recipe=recipe,
                                 ingredient_id=ingredient['id'],
                                 amount=ingredient['amount'])
                for ingredient in ingredients]
-
+        obj.sort(key=(lambda item: item.ingredient.name), reverse=True)
         RecipeIngredient.objects.bulk_create(obj)
 
     @transaction.atomic
