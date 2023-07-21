@@ -178,6 +178,7 @@ class BaseUserRecipe(models.Model):
 
     class Meta:
         abstract = True
+        default_related_name = '%(app_label)s_%(class)s_related'
 
 
 class Cart(BaseUserRecipe):
@@ -191,7 +192,6 @@ class Cart(BaseUserRecipe):
 
             ),
         ]
-        default_related_name = 'carts'
 
     def __str__(self):
         return f'Рецепт {self.recipe} в корзине {self.user}'
@@ -208,7 +208,6 @@ class Favorite(BaseUserRecipe):
 
             ),
         ]
-        default_related_name = 'favorites'
 
     def __str__(self):
         return f'Любимый рецепт {self.recipe} пользователя {self.user}'
