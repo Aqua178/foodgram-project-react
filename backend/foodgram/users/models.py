@@ -3,12 +3,14 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from api.mixins import validate_username
+from .validators import validate_username
 
 
 class User(AbstractUser):
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'username', 'password']
+
     username = models.CharField(
         max_length=settings.LENGTH150,
         unique=True,

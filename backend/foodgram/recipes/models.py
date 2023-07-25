@@ -1,4 +1,6 @@
+from colorfield.fields import ColorField
 from django.conf import settings
+from django.core import validators
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Exists, OuterRef, UniqueConstraint
@@ -37,12 +39,19 @@ class Tag(models.Model):
         max_length=settings.LENGTH200,
         verbose_name='Название тега',
     )
-    color = models.CharField(
-        max_length=settings.LENGTH7,
-        verbose_name='Цвет в HEX',
-        blank=True,
-        null=True,
+    color = ColorField(
+        'Цветовой HEX-код',
         unique=True,
+        default='#FF0000',
+        max_length=settings.LENGTH7,
+        validators=[
+            validators.RegexValidator(
+                regex=settings.COLOR_REGEX,
+                message=settings.NOT_COLOR_HEX
+            ),
+        ],
+        error_messages={'unique': settings.COLOR_NO_UNIQUE},
+        help_text=settings.HELP_CHOISE_COLOR
     )
     slug = models.SlugField(
         max_length=settings.LENGTH200,

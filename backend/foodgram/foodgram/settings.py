@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'recipes.apps.RecipesConfig',
     'users.apps.UsersConfig',
     'corsheaders',
+    'colorfield',
 ]
 
 MIDDLEWARE = [
@@ -165,12 +166,23 @@ DJOSER = {
 CORS_ALLOW_ALL_ORIGINS = True
 DATA_DIR = (BASE_DIR / 'static/data/')
 
+# Далее вынесены постоянные которые нужны для работы проекта
+# ----------------------------------------------------------------------------
+# Constant values
 MODEL_STR_LIMIT = 30
 LENGTH254 = 254
 LENGTH150 = 150
 LENGTH200 = 200
 LENGTH7 = 7
 MINVALUE = 1
+# ----------------------------------------------------------------------------
+#Regular expressions
+COLOR_REGEX = r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$'
+# ----------------------------------------------------------------------------
+# Notifications
+NOT_COLOR_HEX = 'Введенное значение не является цветом в формате HEX'
+COLOR_NO_UNIQUE = 'Такой цвет уже существует!'
+HELP_CHOISE_COLOR = 'Для выбора цвета воспользуйтесь цветовой панелью.'
 MUST_HAVE_FIELD = 'Обязательное поле.'
 NOT_LIST_INGREDIENT = '{ingredients} должен быть не пустым списком!'
 NOT_POSITIVE_INTEGER_TAG = '{tag} должен быть целым числом больше нуля!'
