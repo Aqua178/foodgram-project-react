@@ -43,7 +43,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     permission_classes = [IsAuthorOrReadOnly, IsAuthenticatedOrReadOnly]
     filterset_class = RecipeFilter
-    queryset = Recipe.objects.all()
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            return Recipe.custom_objects.add_user_annotations(
+                self.request.user.id).all()
+        return Recipe.custom_objects.all()
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -72,7 +77,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
         queryset_ingredients = RecipeIngredient.objects.filter(
-            recipe__cart__user=request.user).values(
+            recipe__carts__user=request.user).values(
             'ingredient__name',
             'ingredient__measurement_unit', ).order_by(
             'ingredient__name').annotate(total=Sum('amount'))

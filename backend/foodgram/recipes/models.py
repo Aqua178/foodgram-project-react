@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import UniqueConstraint
+from django.db.models import Exists, OuterRef, UniqueConstraint
 
 from users.models import User
 
@@ -59,6 +59,23 @@ class Tag(models.Model):
         return self.name[:settings.MODEL_STR_LIMIT]
 
 
+class RecipeQuerySet(models.QuerySet):
+
+    def add_user_annotations(self, user_id):
+        return self.annotate(
+            is_favorited=Exists(
+                Favorite.objects.filter(
+                    user_id=user_id, recipe__pk=OuterRef('pk')
+                )
+            ),
+            is_in_shopping_cart=Exists(
+                Cart.objects.filter(
+                    user_id=user_id, recipe__pk=OuterRef('pk')
+                )
+            ),
+        )
+
+
 class Recipe(models.Model):
     tags = models.ManyToManyField(
         Tag,
@@ -97,6 +114,8 @@ class Recipe(models.Model):
     )
     pub_date = models.DateTimeField(
         verbose_name='Дата публикации', auto_now_add=True, db_index=True)
+
+    custom_objects = RecipeQuerySet.as_manager()
 
     class Meta:
         ordering = ('pub_date', 'name', 'author', 'cooking_time')
@@ -178,7 +197,6 @@ class BaseUserRecipe(models.Model):
 
     class Meta:
         abstract = True
-        default_related_name = '%(app_label)s_%(class)s_related'
 
 
 class Cart(BaseUserRecipe):
@@ -192,6 +210,7 @@ class Cart(BaseUserRecipe):
 
             ),
         ]
+        default_related_name = 'carts'
 
     def __str__(self):
         return f'Рецепт {self.recipe} в корзине {self.user}'
@@ -208,6 +227,7 @@ class Favorite(BaseUserRecipe):
 
             ),
         ]
+        default_related_name = 'favorites'
 
     def __str__(self):
         return f'Любимый рецепт {self.recipe} пользователя {self.user}'
