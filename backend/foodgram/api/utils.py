@@ -1,9 +1,11 @@
+from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework import serializers
 from rest_framework.response import Response
 
-from recipes.models import Recipe
+from recipes.models import Recipe, Ingredient
 
 
 def create_favorite_cart(serial, request, pk=None):
@@ -36,3 +38,36 @@ def generate_cart(queryset):
     response['Content-Disposition'] = (
         'attachment; filename=foodgram_products.txt')
     return response
+
+
+def val_ingr(ingredients):
+    ingredient_ids = []
+    for ingredient in ingredients:
+        if 'amount' not in ingredient:
+            raise serializers.ValidationError(
+                {'amount': settings.MUST_HAVE_FIELD_AMOUNT.format(
+                    ingredient=ingredient)})
+        if 'id' not in ingredient:
+            raise serializers.ValidationError(
+                {'id': settings.MUST_HAVE_FIELD_ID.format(
+                    ingredient=ingredient)})
+        try:
+            int(ingredient['amount'])
+            if not int(ingredient['amount']) > 0:
+                raise serializers.ValidationError(
+                    {'amount': settings.NOT_POSITIVE_INTEGER.format(
+                        ingredient=ingredient)})
+        except ValueError:
+            raise serializers.ValidationError(
+                {'amount': settings.NOT_POSITIVE_INTEGER.format(
+                    ingredient=ingredient)})
+        if not Ingredient.objects.filter(id=ingredient['id']).exists():
+            raise serializers.ValidationError(
+                {'ingredients': settings.NO_INGREDIENT.format(
+                    ingredient=ingredient)})
+        ingredient_ids.append(ingredient['id'])
+        if len(ingredient_ids) != len(set(ingredient_ids)):
+            raise serializers.ValidationError(
+                {'ingredients': settings.DUPLICATE_INGREDIENTS.format(
+                    ingredient=ingredient)})
+    return ingredients
