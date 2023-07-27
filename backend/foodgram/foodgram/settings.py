@@ -175,6 +175,7 @@ LENGTH150 = 150
 LENGTH200 = 200
 LENGTH7 = 7
 MINVALUE = 1
+MAXVALUE = 3000
 # ----------------------------------------------------------------------------
 #Regular expressions
 COLOR_REGEX = r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$'

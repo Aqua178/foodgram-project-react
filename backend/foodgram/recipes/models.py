@@ -1,7 +1,7 @@
 from colorfield.fields import ColorField
 from django.conf import settings
 from django.core import validators
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import Exists, OuterRef, UniqueConstraint
 
@@ -113,7 +113,8 @@ class Recipe(models.Model):
     )
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления',
-        validators=[MinValueValidator(settings.MINVALUE)],
+        validators=[MinValueValidator(settings.MINVALUE),
+                    MaxValueValidator(settings.MAXVALUE)],
         db_index=True,
     )
     ingredients = models.ManyToManyField(
@@ -175,7 +176,8 @@ class RecipeIngredient(models.Model):
         verbose_name='Продукт')
     amount = models.PositiveSmallIntegerField(
         verbose_name='Количество',
-        validators=[MinValueValidator(settings.MINVALUE)],
+        validators=[MinValueValidator(settings.MINVALUE),
+                    MaxValueValidator(settings.MAXVALUE)],
     )
 
     class Meta:
@@ -212,6 +214,7 @@ class Cart(BaseUserRecipe):
     class Meta:
         verbose_name = 'Корзина'
         verbose_name_plural = 'Корзина'
+        default_related_name = 'carts'
         constraints = [
             models.UniqueConstraint(
                 fields=['recipe', 'user'],
@@ -219,7 +222,6 @@ class Cart(BaseUserRecipe):
 
             ),
         ]
-        default_related_name = 'carts'
 
     def __str__(self):
         return f'Рецепт {self.recipe} в корзине {self.user}'
@@ -229,6 +231,7 @@ class Favorite(BaseUserRecipe):
     class Meta:
         verbose_name = 'Избранный'
         verbose_name_plural = 'Избранные'
+        default_related_name = 'favorites'
         constraints = [
             models.UniqueConstraint(
                 fields=['recipe', 'user'],
@@ -236,7 +239,6 @@ class Favorite(BaseUserRecipe):
 
             ),
         ]
-        default_related_name = 'favorites'
 
     def __str__(self):
         return f'Любимый рецепт {self.recipe} пользователя {self.user}'

@@ -71,7 +71,8 @@ class RecipeSerializerRead(serializers.ModelSerializer):
 
 class RecipeSerializerWrite(serializers.ModelSerializer):
     image = Base64ImageField()
-    cooking_time = serializers.IntegerField(min_value=settings.MINVALUE)
+    cooking_time = serializers.IntegerField(min_value=settings.MINVALUE,
+                                            max_value=settings.MAXVALUE)
 
     class Meta:
         model = Recipe
