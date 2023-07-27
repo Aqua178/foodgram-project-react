@@ -15,9 +15,6 @@ DATA_TO_MODEL_MAPPING = (
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        try:
-            os.chdir(settings.DATA_DIR)
-            for filename, model in DATA_TO_MODEL_MAPPING:
-                data_creator(filename, model)
-        except Exception as error:
-            print(error)
+        os.chdir(settings.DATA_DIR)
+        for filename, model in DATA_TO_MODEL_MAPPING:
+            data_creator(filename, model)

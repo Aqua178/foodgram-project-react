@@ -1,14 +1,18 @@
+import logging
+
 from csv import reader
 
 from django.db import transaction
 
+logging.basicConfig(level=logging.INFO)
+
 
 @transaction.atomic
 def data_creator(filename, model):
-    print(f'Открываем {filename}')
+    logging.info('Открываем {}'.format(filename))
     with open(f'{filename}', encoding='utf-8') as file:
         cf = reader(file)
-        print(f'Готовим данные для модели {model.__name__}')
+        logging.info('Готовим данные для модели {}'.format(model.__name__))
         if filename == 'ingredients.csv':
             for name, measurement_unit in cf:
                 model.objects.get_or_create(
@@ -22,5 +26,7 @@ def data_creator(filename, model):
                     color=color,
                     slug=slug
                 )
-        print(f'Данные из файла {filename} успешно '
-              f'загружены в модель {model.__name__}')
+        logging.info('Данные из файла {} успешно загружены в модель {}'.format(
+            filename,
+            model.__name__
+        ))
