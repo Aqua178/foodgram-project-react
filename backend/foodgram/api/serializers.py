@@ -97,8 +97,7 @@ class RecipeSerializerWrite(serializers.ModelSerializer):
                 ingredient_id=ingredient['id'],
                 amount=ingredient['amount']
             )
-            for ingredient in ingredients
-            ]
+            for ingredient in ingredients]
         RecipeIngredient.objects.bulk_create(recipe_ingredients)
 
     @transaction.atomic
