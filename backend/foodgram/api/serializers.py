@@ -5,7 +5,7 @@ from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from api.utils import get_author, val_ingr
+from api.utils import get_author, check_ingredients
 from recipes.models import (Cart, Favorite, Ingredient, Recipe,
                             RecipeIngredient, Subscription, Tag)
 from users.models import User
@@ -21,11 +21,10 @@ class CustomUserSerializer(UserSerializer):
         read_only_fields = ('is_subscribed',)
 
     def get_is_subscribed(self, obj):
-        request = self.context.get('request', False)
-        return (request and request.user.is_authenticated
-                and Subscription.objects.filter(
-                    author=obj,
-                    subscriber=request.user.id).exists())
+        request = self.context.get('request')
+        if request:
+            return obj.subscriber.filter(subscriber=request.user.id).exists()
+        return False
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -82,50 +81,35 @@ class RecipeSerializerWrite(serializers.ModelSerializer):
     def to_representation(self, obj):
         return RecipeSerializerRead(obj).data
 
-    def validate_tags(self, value):
-        tags = self.initial_data.pop('tags')
-        tags_ids = []
-        for tag in tags:
-            if not (isinstance(tag, int) and tag > 0):
-                raise serializers.ValidationError(
-                    {'tags': settings.NOT_POSITIVE_INTEGER_TAG.format(
-                        tag=tag)})
-            tags_ids.append(tag)
-            if len(tags_ids) != len(set(tags_ids)):
-                raise serializers.ValidationError(
-                    {'tags': settings.DUPLICATE_TAGS.format(
-                        tag=tag)})
-        return value
-
     def validate_ingredients(self):
         if 'ingredients' not in self.initial_data:
             raise serializers.ValidationError(
                 {'ingredients': settings.MUST_HAVE_FIELD})
         ingredients = self.initial_data.pop('ingredients')
-        if not (isinstance(ingredients, list)
-                and len(ingredients) > 0):
-            raise serializers.ValidationError(
-                {'ingredients': settings.NOT_LIST_INGREDIENT.format(
-                    ingredients=ingredients)})
-        all_ingredients = val_ingr(ingredients)
+        all_ingredients = check_ingredients(ingredients)
         return all_ingredients
 
     def create_ingredients(self, ingredients, recipe):
 
-        obj = [RecipeIngredient(recipe=recipe,
-                                ingredient_id=ingredient['id'],
-                                amount=ingredient['amount'])
-               for ingredient in ingredients]
-        obj.sort(key=(lambda item: item.ingredient.name), reverse=True)
-        RecipeIngredient.objects.bulk_create(obj)
+        recipe_ingredients = [
+            RecipeIngredient(
+                recipe=recipe,
+                ingredient_id=ingredient['id'],
+                amount=ingredient['amount']
+            )
+            for ingredient in ingredients
+            ]
+        RecipeIngredient.objects.bulk_create(recipe_ingredients)
 
     @transaction.atomic
     def create(self, validated_data):
         ingredients = self.validate_ingredients()
         tags = validated_data.pop('tags')
-        recipe = Recipe.custom_objects.create(**validated_data,
-                                              author_id=self.context.get(
-                                                  'request').user.id)
+        validated_data.setdefault(
+            'author',
+            self.context.get('request').user
+        )
+        recipe = super().create(validated_data)
         recipe.tags.set(tags)
         self.create_ingredients(ingredients, recipe)
         return recipe
@@ -167,19 +151,9 @@ class FavoriteSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class CartSerializer(FavoriteSerializer):
+class CartSerializer(serializers.ModelSerializer):
     class Meta(FavoriteSerializer.Meta):
         model = Cart
-
-    def validate(self, attrs):
-        if (self.context.get('request').method == 'POST'
-                and Cart.objects.filter(
-                    recipe_id=self.context.get('pk'),
-                    user_id=self.context.get('request').user.id).exists()):
-            raise serializers.ValidationError(
-                {settings.RECIPE_ALREADY_IN_CART.format(
-                    recipe=self.context.get('pk'))})
-        return attrs
 
 
 class SubscribeSerializer(serializers.ModelSerializer):

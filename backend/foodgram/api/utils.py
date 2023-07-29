@@ -40,7 +40,7 @@ def generate_cart(queryset):
     return response
 
 
-def val_ingr(ingredients):
+def check_ingredients(ingredients):
     ingredient_ids = []
     for ingredient in ingredients:
         if 'amount' not in ingredient:
@@ -50,16 +50,6 @@ def val_ingr(ingredients):
         if 'id' not in ingredient:
             raise serializers.ValidationError(
                 {'id': settings.MUST_HAVE_FIELD_ID.format(
-                    ingredient=ingredient)})
-        try:
-            int(ingredient['amount'])
-            if not int(ingredient['amount']) > 0:
-                raise serializers.ValidationError(
-                    {'amount': settings.NOT_POSITIVE_INTEGER.format(
-                        ingredient=ingredient)})
-        except ValueError:
-            raise serializers.ValidationError(
-                {'amount': settings.NOT_POSITIVE_INTEGER.format(
                     ingredient=ingredient)})
         if not Ingredient.objects.filter(id=ingredient['id']).exists():
             raise serializers.ValidationError(
