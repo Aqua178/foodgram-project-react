@@ -1,11 +1,10 @@
 from django.conf import settings
 from django.db import transaction
-from django.shortcuts import get_object_or_404
 from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from api.utils import get_author, check_ingredients
+from api.utils import check_ingredients
 from recipes.models import (Cart, Favorite, Ingredient, Recipe,
                             RecipeIngredient, Subscription, Tag)
 from users.models import User
@@ -97,7 +96,8 @@ class RecipeSerializerWrite(serializers.ModelSerializer):
                 ingredient_id=ingredient['id'],
                 amount=ingredient['amount']
             )
-            for ingredient in ingredients]
+            for ingredient in ingredients
+        ]
         RecipeIngredient.objects.bulk_create(recipe_ingredients)
 
     @transaction.atomic
@@ -159,16 +159,14 @@ class SubscribeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = '__all__'
-        read_only_fields = ('subscriber', 'author',)
 
     def to_representation(self, obj):
         return SubscriptionSerializer(obj.author, context={
             'request': self.context.get('request')}).data
 
     def validate(self, attrs):
-        author_id = get_author(self.context.get('request'))
-        subscriber = self.context.get('request').user
-        author = get_object_or_404(User, pk=author_id)
+        author = attrs['author']
+        subscriber = attrs['subscriber']
         subscription = Subscription.objects.filter(author=author,
                                                    subscriber=subscriber)
         if author == subscriber:

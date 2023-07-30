@@ -1,11 +1,12 @@
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Sum
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
+from rest_framework.filters import SearchFilter
 
 from api.filters import RecipeFilter
 from api.permissions import IsAuthorOrReadOnly
@@ -15,8 +16,9 @@ from api.serializers import (CartSerializer, FavoriteSerializer,
                              SubscriptionSerializer, TagSerializer)
 from api.utils import (create_favorite_cart, delete_favorite_cart,
                        generate_cart, get_author)
-from recipes.models import (Cart, Favorite, Ingredient, Recipe,
-                            RecipeIngredient, Subscription, Tag, User)
+from recipes.models import (Cart, Favorite, Recipe, RecipeIngredient,
+                            Subscription, Tag, User, Ingredient)
+from djoser.views import UserViewSet as DjoserUserViewSet
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -28,20 +30,14 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     pagination_class = None
-
-    def get_queryset(self):
-        queryset = Ingredient.objects.all()
-        ingredient_name = self.request.query_params.get('name')
-        if ingredient_name:
-            queryset = queryset.filter(
-                Q(name__istartswith=ingredient_name) | Q(
-                    name__icontains=ingredient_name))
-        return queryset
+    filter_backends = (SearchFilter, )
+    search_fields = ('name', )
+    queryset = Ingredient.objects.all()
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
-    permission_classes = [IsAuthorOrReadOnly, IsAuthenticatedOrReadOnly]
+    permission_classes = (IsAuthorOrReadOnly, IsAuthenticatedOrReadOnly)
     filterset_class = RecipeFilter
 
     def get_queryset(self):
@@ -87,28 +83,46 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SubscriptionSerializer
-    permission_classes = [IsAuthorOrReadOnly, IsAuthenticated]
+    permission_classes = (IsAuthorOrReadOnly, IsAuthenticated)
 
     def get_queryset(self):
         return User.objects.annotate(recipes_count=Count('recipes')).filter(
             following__subscriber=self.request.user.id)
 
 
-class APISubscribtionCreateDelete(generics.CreateAPIView,
-                                  generics.DestroyAPIView,
-                                  generics.GenericAPIView):
-    queryset = Subscription.objects.all()
-    serializer_class = SubscribeSerializer
-    permission_classes = [IsAuthorOrReadOnly, IsAuthenticated]
+class UserViewSet(DjoserUserViewSet):
+    @action(methods=['POST', 'DELETE'],
+            detail=False,
+            url_path=r'(?P<pk>[^/.]+)/subscribe')
+    def subscribe(self, request, *args, **kwargs):
+        if request.method == 'POST':
+            return self.create_subscribe(request)
+        else:
+            return self.delete_subscribe(request)
 
-    def perform_create(self, serializer):
-        author_id = get_author(self.request)
-        serializer.save(subscriber_id=self.request.user.id,
-                        author_id=author_id)
+    def create_subscribe(self, request):
+        author_id = get_author(request)
+        data = {
+            'subscriber': request.user.id,
+            'author': author_id,
+        }
+        serializer = SubscribeSerializer(
+            data=data,
+            context=self.get_serializer_context()
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers)
 
-    def destroy(self, request, *args, **kwargs):
-        author_id = get_author(self.request)
-        get_object_or_404(Subscription,
-                          subscriber_id=self.request.user.id,
-                          author_id=author_id).delete()
+    def delete_subscribe(self, request):
+        author_id = get_author(request)
+        subscribe = get_object_or_404(
+            Subscription,
+            subscriber_id=request.user.id,
+            author_id=author_id
+        )
+        subscribe.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
