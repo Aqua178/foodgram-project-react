@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.3'
 services:
 
   db:
@@ -9,7 +9,7 @@ services:
       - ./.env
 
   backend:
-    image: aqua78/foodgram_backend:latest
+    build: ../backend/foodgram/
     restart: always
     volumes:
       - media_value:/app/media/
@@ -22,29 +22,26 @@ services:
       - ./.env
 
   frontend:
-    image: aqua78/foodgram_frontend:latest
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
     volumes:
-      - ./frontend/frontend/:/app/result_build/
-    depends_on:
-      - backend
-
+      - ../frontend/:/app/result_build/
 
   nginx:
     image: nginx:1.19.3
     ports:
-      - "443:443"
       - "80:80"
     volumes:
       - media_value:/usr/share/nginx/html/media/
       - static_admin_value:/usr/share/nginx/html/static/admin/
       - static_rest_framework_value:/usr/share/nginx/html/static/rest_framework/
       - static_data_value:/usr/share/nginx/html/static/data/
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - ./frontend/frontend/build/:/usr/share/nginx/html/
-      - ./docs/docs/:/usr/share/nginx/html/api/docs/
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ../frontend/build/:/usr/share/nginx/html/
+      - ../docs/:/usr/share/nginx/html/api/docs/
     depends_on:
       - backend
-
 
 volumes:
   static_admin_value:

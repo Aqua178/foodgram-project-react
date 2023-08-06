@@ -1,4 +1,5 @@
 # Foodgram-project-react
+[![Foodgram](https://github.com/aqua178/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg)](https://github.com/aqua178//foodgram-project-react/actions/workflows/foodgram_workflow.yml)
 [![Python](https://img.shields.io/badge/-Python-464646?style=flat-square&logo=Python)](https://www.python.org/)
 [![Nginx](https://img.shields.io/badge/-NGINX-464646?style=flat-square&logo=NGINX)](https://nginx.org/ru/)
 [![gunicorn](https://img.shields.io/badge/-gunicorn-464646?style=flat-square&logo=gunicorn)](https://gunicorn.org/)
@@ -85,6 +86,69 @@ docker-compose exec backend python3 manage.py createsuperuser
 docker-compose exec backend python3 manage.py collectstatic --no-input
 ```
 
+### Как развернуть проект на сервере:
+Установите соединение с сервером:
+```
+ssh username@server_address
+```
+Обновите индекс пакетов APT:
+```
+sudo apt update
+```
+и обновите установленные в системе пакеты и установите обновления безопасности:
+```
+sudo apt upgrade -y
+```
+Создайте папку `nginx`:
+```
+mkdir nginx
+```
+Отредактируйте файл `nginx/default.conf` и в строке `server_name` впишите IP виртуальной машины (сервера).  
+Скопируйте подготовленные файлы `docker-compose.yml` и `nginx/default.conf` из вашего проекта на сервер:
+```
+scp docker-compose.yaml <username>@<host>/home/<username>/docker-compose.yaml
+sudo mkdir nginx
+scp default.conf <username>@<host>/home/<username>/nginx/default.conf
+```
+Установите Docker и Docker-compose:
+```
+sudo apt install docker.io
+```
+```
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+```
+```
+sudo chmod +x /usr/local/bin/docker-compose
+```
+Проверьте корректность установки Docker-compose:
+```
+sudo  docker-compose --version
+```
+На сервере создайте файл .env 
+```
+touch .env
+```
+и заполните переменные окружения
+```
+nano .env
+```
+или создайте этот файл локально и скопируйте файл по аналогии с предыдущим шагом:
+```
+ALLOWED_HOSTS=<ALLOWED_HOSTS>
+SECRET_KEY=<SECRET_KEY>
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=postgres
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+DB_HOST=db
+DB_PORT=5432
+```
+
+### Тестовые пользователи
+Логин: ```admin``` (суперюзер)  
+Email: ```admin@admin.zz```  
+Пароль: ```123456```
+
 ### Документация к API и примеры запросов доступны по ссылке в проекте:
 
 ```
@@ -93,4 +157,4 @@ http://127.0.0.1/api/docs/
 
 ### Автор:
 
-Aleksei Vladyka
+[Aleksei Vladyka](https://github.com/aqua178/)
