@@ -47,7 +47,7 @@ cd infra
 Запустить конейнеры:
 
 ```
-docker-compose up -d
+docker compose up -d
 ```
 
 Проверить статус запущенных контейнеров:
@@ -59,25 +59,25 @@ docker ps
 Выполнить миграции:
 
 ```
-docker-compose exec backend python3 manage.py migrate
+docker compose exec backend python3 manage.py migrate
 ```
 
 Загрузка ингредиентов в БД:
 
 ```
-docker-compose exec backend python3 manage.py load_foodgram_data
+docker compose exec backend python3 manage.py load_foodgram_data
 ```
 
 Создать пользователя:
 
 ```
-docker-compose exec backend python3 manage.py createsuperuser
+docker compose exec backend python3 manage.py createsuperuser
 ```
 
 Собрать static файлы:
 
 ```
-docker-compose exec backend python3 manage.py collectstatic --no-input
+docker compose exec backend python3 manage.py collectstatic --no-input
 ```
 
 ### Как развернуть проект на сервере:
