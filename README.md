@@ -29,15 +29,15 @@ cd infra
 Используемые в проекте переменные окружения infra/.env
 
 ```
-DB_ENGINE= # выборд БД 
-DB_NAME= # имя базы данных postgres
-POSTGRES_USER= # логин для подключения к базе данных
-POSTGRES_PASSWORD= # пароль для подключения к БД (установите свой)
-DB_HOST= # название сервиса (контейнера)
+DB_ENGINE= django.db.backends.postgresql # выборд БД 
+DB_NAME= postgres # имя базы данных postgres
+POSTGRES_USER= postgres # логин для подключения к базе данных
+POSTGRES_PASSWORD= postgres # пароль для подключения к БД (установите свой)
+DB_HOST= db # название сервиса (контейнера)
 DB_PORT=5432 # порт для подключения к БД
-SECRET_KEY= # секретный ключ Django
-DEBUG= # Django Debug True/False
-ALLOWED_HOSTS= # Разрешенные хосты - пример '1.1.1.1, example.com'
+SECRET_KEY= default-key # секретный ключ Django
+DEBUG= False # Django Debug True/False
+ALLOWED_HOSTS= .localhost # Разрешенные хосты - пример '1.1.1.1, example.com'
 ```
 
 ```
